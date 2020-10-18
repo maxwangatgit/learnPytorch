@@ -1,10 +1,11 @@
 '''
 Author: your name
 Date: 2020-10-18 15:27:27
-LastEditTime: 2020-10-18 15:50:50
+LastEditTime: 2020-10-18 15:53:36
 LastEditors: Please set LastEditors
 Description: In User Settings Edit
 FilePath: \learnPytorch\test.py
 '''
 test
 二三年级健康就好 吗顺丰到付风水大师说过
+你好吗，我很好，我还乐意更好，你想变得怎么样
