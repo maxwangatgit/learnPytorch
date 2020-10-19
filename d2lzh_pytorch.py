@@ -1,5 +1,6 @@
 #!encoding=utf-8
 import torch
+from torch import nn
 from IPython import display
 from matplotlib import pyplot as plt
 import torchvision.transforms as transforms
@@ -7,6 +8,8 @@ import torchvision
 import numpy as np
 import random
 import sys
+
+# reshape the x 
 
 
 def use_svg_display():
@@ -86,6 +89,15 @@ def evaluate_accurancy(data_iter, net):
         n += y.shape[0]
     return acc_sum / n
 
+
+# 本函数已保存在d2lzh_pytorch包中方便以后使用
+# achieve the tensor shape transform
+class FlattenLayer(nn.Module):
+    def __init__(self):
+        super(FlattenLayer, self).__init__()
+    def forward(self, x): # x shape: (batch, *, *, ...)
+        return x.view(x.shape[0], -1)
+
 # optimizer : the param 
 def train_ch3(net, train_iter, test_iter, loss, num_epochs, batch_size,
               params=None, lr=None, optimizer=None):
@@ -94,8 +106,6 @@ def train_ch3(net, train_iter, test_iter, loss, num_epochs, batch_size,
         train_1_sum, train_acc_sum, n = 0.0, 0.0, 0
         
         for X, y in  train_iter:
-            y_hat = net(X)
-            l = loss(y_hat, y).sum()
 
             # clean the grad of the net 
             if optimizer is not None:
@@ -103,22 +113,31 @@ def train_ch3(net, train_iter, test_iter, loss, num_epochs, batch_size,
             elif params is not None and params[0].grad is not None:
                 for param in params:
                     param.grad.data.zero_()
+
+            # net forward
+            y_hat = net(X)
+            l = loss(y_hat, y).sum()
+
             
             # modify the params
             l.backward()
             if optimizer is None:
-                sgd(params, lr, batch_size)
+                print("ddd")
+                # sgd(params, lr, batch_size)
             else:
                 # easy achieve of softmax 
                 optimizer.step()
 
             train_1_sum += l.item()
             train_acc_sum += (y_hat.argmax(dim=1) == y).sum().item()
+            
             n += y.shape[0]
         
-        test_acc = evaluate_accurancy(test_iter, net)
-        print('epoch %d, loss %.4f, train acc %.3f, test acc %.3f'
-              % (epoch + 1, train_l_sum / n, train_acc_sum / n, test_acc))
+        # test_acc = evaluate_accurancy(test_iter, net)
+        # print('epoch %d, loss %.4f, train acc %.3f, test acc %.3f'
+        #       % (epoch + 1, train_l_sum / n, train_acc_sum / n, test_acc))
+        print('epoch %d, loss %.4f, train acc %.3f'
+              % (epoch + 1, train_1_sum / n, train_acc_sum / n))
 
 
 
