@@ -31,9 +31,12 @@ def accuracy(y_hat, y):
     return (y_hat.argmax(dim=1) == y).float().mean().item()
 
 # define the struct of softmax net
-def softmaxNet(X):
+def softmaxNet(X, num_inputs, w, b):
     # mm means mulit function of mat
-    return softmax(torch.mm(X.view((-1, num_inputs)), W) + b)
+    return softmax(torch.mm(X.view((-1, num_inputs)), w) + b)
+
+
+
 
 def easySoftmax():
 
@@ -60,7 +63,7 @@ def easySoftmax():
    
     train_iter, test_iter = d2l.load_data_fashion_mnist(batch_size)
 
-    d2l.train_ch3(net, train_iter, test_iter, loss, num_epochs, batch_size, [W, b], lr)
+    d2l.train_ch3(net, train_iter, test_iter, loss, num_epochs, batch_size, [w, b], lr)
 
 
 
