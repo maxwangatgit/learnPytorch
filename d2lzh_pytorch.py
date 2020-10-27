@@ -142,3 +142,15 @@ def train_ch3(net, train_iter, test_iter, loss, num_epochs, batch_size,
 
 
         
+# 本函数已保存在d2lzh_pytorch包中方便以后使用
+def semilogy(x_vals, y_vals, x_label, y_label, x2_vals=None, y2_vals=None,
+             legend=None, figsize=(3.5, 2.5)):
+    set_figsize(figsize)
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+    plt.semilogy(x_vals, y_vals)
+    if x2_vals and y2_vals:
+        plt.semilogy(x2_vals, y2_vals, linestyle=':')
+        plt.legend(legend)
+
+    plt.show()
