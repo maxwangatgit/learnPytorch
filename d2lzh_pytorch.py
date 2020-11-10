@@ -7,6 +7,7 @@ import torchvision.transforms as transforms
 import torchvision
 import numpy as np
 import random
+import time
 import sys
 
 # reshape the x 
@@ -81,12 +82,32 @@ def load_data_fashion_mnist(batch_size):
     return train_iter, test_iter
 
 # calaulate the accurancy of data sets
-def evaluate_accurancy(data_iter, net):
-    acc_sum, n = 0,0, 0
-    for X, y in data_iter:
-        acc_sum += (net(X).argmax(dim=1)).float().mean().item()
-        # there is y.shape[0] classes in one X
-        n += y.shape[0]
+def evaluate_accurancy(data_iter, net, device=None):
+    if device is None and isinstance(net, torch.nn.Module):
+        # 如果没有指定device 就使用net的device
+        device = list(net.parameters())[0].device
+
+
+    acc_sum, n = 0.0, 0
+
+    with torch.no_grad():            
+        for X, y in data_iter:
+            if isinstance(net, torch.nn.Module):
+                net.eval() # 评估模式，关掉dropout
+                y_hat = net(X.to(device))
+                y_hat = net(X.to(device)).argmax(dim=1)
+                print(y_hat,"    ",y.to(device))
+                print((y_hat == y.to(device)).float().sum().item())
+                acc_sum += (y_hat == y.to(device)).float().sum().item()
+                net.train() # 改回训练模式
+            # there is y.shape[0] classes in one X
+            else:
+                if('is_training' in net.__code__.co_varnames): # 如果有is_training这个参数
+                     # 将is_training设置成False
+                    acc_sum += (net(X, is_training=False).argmax(dim=1) == y).float().sum().item() 
+                else:
+                    acc_sum += (net(X).argmax(dim=1) == y).float().sum().item() 
+            n += y.shape[0]
     return acc_sum / n
 
 
@@ -99,45 +120,35 @@ class FlattenLayer(nn.Module):
         return x.view(x.shape[0], -1)
 
 # optimizer : the param 
-def train_ch3(net, train_iter, test_iter, loss, num_epochs, batch_size,
-              params=None, lr=None, optimizer=None):
+def train_ch5(net, train_iter, test_iter, batch_size, optimizer, device, num_epochs):
+
+    net = net.to(device)
+    print("training on", device)
+    loss = torch.nn.CrossEntropyLoss()
+    
     # train epoch times and epoch has batch_size images
     for epoch in range(num_epochs):
-        train_1_sum, train_acc_sum, n = 0.0, 0.0, 0
+        train_l_sum, train_acc_sum, n, batch_count, start = 0.0, 0.0, 0, 0, time.time()
         
         for X, y in  train_iter:
-
-            # clean the grad of the net 
-            if optimizer is not None:
-                optimizer.zero_grad()
-            elif params is not None and params[0].grad is not None:
-                for param in params:
-                    param.grad.data.zero_()
-
-            # net forward
+            X = X.to(device)
+            y = y.to(device)
             y_hat = net(X)
-            l = loss(y_hat, y).sum()
-
-            
-            # modify the params
+            l = loss(y_hat, y)
+            optimizer.zero_grad()
             l.backward()
-            if optimizer is None:
-                print("ddd")
-                # sgd(params, lr, batch_size)
-            else:
-                # easy achieve of softmax 
-                optimizer.step()
-
-            train_1_sum += l.item()
-            train_acc_sum += (y_hat.argmax(dim=1) == y).sum().item()
-            
+            optimizer.step()
+            train_l_sum += l.cpu().item()
+            train_acc_sum += (y_hat.argmax(dim=1) == y).sum().cpu().item()
+       
+            # clean the grad of the net 
             n += y.shape[0]
-        
-        # test_acc = evaluate_accurancy(test_iter, net)
-        # print('epoch %d, loss %.4f, train acc %.3f, test acc %.3f'
-        #       % (epoch + 1, train_l_sum / n, train_acc_sum / n, test_acc))
-        print('epoch %d, loss %.4f, train acc %.3f'
-              % (epoch + 1, train_1_sum / n, train_acc_sum / n))
+            batch_count += 1
+
+
+        test_acc = evaluate_accurancy(test_iter, net)
+        print('epoch %d, loss %.4f, train acc %.3f, test acc %.3f' % (epoch + 1, train_l_sum / n, train_acc_sum / n, test_acc))
+
 
 
 
@@ -154,3 +165,11 @@ def semilogy(x_vals, y_vals, x_label, y_label, x2_vals=None, y2_vals=None,
         plt.legend(legend)
 
     plt.show()
+
+def corr2d(X, K):
+    h, w = K.shape
+    Y = torch.zeros((X.shape[0] -h + 1, X.shape[1] - w + 1 ))
+    for i in range(Y.shape[0]):
+        for j in range(Y.shape[1]):
+            Y[i, j]= (X[i:i+h,j:j+w] * K).sum()
+    return Y
