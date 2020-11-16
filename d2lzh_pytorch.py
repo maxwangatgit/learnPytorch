@@ -4,6 +4,8 @@ from torch import nn
 from IPython import display
 from matplotlib import pyplot as plt
 import torchvision.transforms as transforms
+import torch.nn.functional as F
+
 import torchvision
 import numpy as np
 import random
@@ -67,10 +69,20 @@ def show_fashion_mnist(images, labels):
         f.axes.get_yaxis().set_visible(False)
     plt.show()
 
-def load_data_fashion_mnist(batch_size):
+def load_data_fashion_mnist(batch_size, resize):
+
+
+    """Download the fashion mnist dataset and then load into memory."""
+    trans = []
+    if resize:
+        trans.append(torchvision.transforms.Resize(size=resize))
+    trans.append(torchvision.transforms.ToTensor())
+
+    transform = torchvision.transforms.Compose(trans)
+
     # download the train and test image data
-    mnist_train = torchvision.datasets.FashionMNIST(root='d:/pytorch/Datasets/FashionMNIST', train=True, download=True, transform=transforms.ToTensor())
-    mnist_test  = torchvision.datasets.FashionMNIST(root='d:/pytorch/Datasets/FashionMNIST', train=False, download=True, transform=transforms.ToTensor())
+    mnist_train = torchvision.datasets.FashionMNIST(root='d:/pytorch/Datasets/FashionMNIST', train=True, download=True, transform=transform)
+    mnist_test  = torchvision.datasets.FashionMNIST(root='d:/pytorch/Datasets/FashionMNIST', train=False, download=True, transform=transform)
 
 
     if sys.platform.startswith('win'):
@@ -173,3 +185,9 @@ def corr2d(X, K):
         for j in range(Y.shape[1]):
             Y[i, j]= (X[i:i+h,j:j+w] * K).sum()
     return Y
+
+class GlobalAvgPool2d(nn.Module):
+    def __init__(self):
+        super(GlobalAvgPool2d, self).__init__()
+    def forward(self, x):
+        return F.avg_pool2d(x, kernel_size=x.size()[2:])
